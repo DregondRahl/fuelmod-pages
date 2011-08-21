@@ -4,9 +4,6 @@ namespace Pages;
 
 class Model_Report extends \Orm\Model
 {
-    protected static $_observers = array(
-        'Orm\\Observer_Validation'  => array('before_save'),
-    );
     
     protected static $_properties = array(
         'id'            => array('type' => 'int'),

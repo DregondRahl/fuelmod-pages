@@ -62,7 +62,7 @@ class Controller_Pages extends \Controller_App
         
         $form = \Fieldset::factory($this->section)->add_model('Pages\\'.$this->model);
         
-        if ($this->section != 'blog')
+        if ($this->model != 'Model_Page')
         {
             $form->populate($page->{$this->section}, true);
         }
@@ -101,7 +101,7 @@ class Controller_Pages extends \Controller_App
 
         $form = \Fieldset::factory($this->section)->add_model('Pages\\'.$this->model);
         
-        if ($this->section != 'blog')
+        if ($this->model != 'Model_Page')
         {
             $form->populate($page->{$this->section}, true);
         }

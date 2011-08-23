@@ -15,15 +15,15 @@ class Model_Page extends \Orm\Model
         'user_id'       => array('type' => 'int'),
         'category'      => array('type' => 'int'),
         'section'       => array('type' => 'varchar'),
-        'title'         => array('type' => 'varchar', 'label' => 'Title'),
+        'title'         => array('type' => 'varchar'),
         'slug'          => array('type' => 'varchar'),
-        'content'       => array('type' => 'text', 'label' => 'Content'),
+        'content'       => array('type' => 'text'),
         'state'         => array('type' => 'int', 'default' => 1),
         'status'        => array('type' => 'int', 'default' => 1),
-        'likes'         => array('type' => 'int', 'default' => 0),
-        'comments'      => array('type' => 'int', 'default' => 0),
-        'created_at'    => array('type' => 'int', 'label' => 'Created At'),
-        'updated_at'    => array('type' => 'int', 'label' => 'Updated At')
+        'like'          => array('type' => 'int', 'default' => 0),
+        'comment'       => array('type' => 'int', 'default' => 0),
+        'created_at'    => array('type' => 'int'),
+        'updated_at'    => array('type' => 'int')
     );
     
     protected static $_has_one = array(
@@ -33,7 +33,25 @@ class Model_Page extends \Orm\Model
             'key_to'            => 'page_id',
             'cascade_save'      => true,
             'cascade_delete'    => true,
+        ),
+        
+        'anime' => array(
+            'key_from'          => 'id',
+            'model_to'          => 'Pages\Model_Anime',
+            'key_to'            => 'page_id',
+            'cascade_save'      => true,
+            'cascade_delete'    => true,
         )
+    );
+    
+    protected static $_has_many = array(
+        'comments' => array(
+            'key_from'          => 'id',
+            'model_to'          => 'Comments\Model_Comment',
+            'key_to'            => 'parent_id',
+            'cascade_save'      => true,
+            'cascade_delete'    => true,
+        ),
     );
     
     public static function set_form_fields($form, $instance = null)
@@ -71,14 +89,6 @@ class Model_Page extends \Orm\Model
         return $page;
     }
     
-    public static function find_blog($id = false)
-    {
-        if ($id)
-        {
-            return self::query()->where('id', $id)->where('section', 'blog')->get_one();
-        }
-        return self::query()->where('section', 'blog')->get();
-    }
 }
 
 /* End of file page.php */

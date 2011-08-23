@@ -9,7 +9,7 @@ class Model_Report extends \Orm\Model
         'id'            => array('type' => 'int'),
         'page_id'       => array('type' => 'int'),
         'assigned_id'   => array('type' => 'int'),
-        'report_link'   => array('type' => 'varchar', 'label' => 'Report Link', 'default' => ''),
+        'report_link'   => array('type' => 'varchar', 'default' => ''),
     );
     
     protected static $_belongs_to = array(
@@ -32,6 +32,11 @@ class Model_Report extends \Orm\Model
         $form->add('content', 'Content', 
                 array('type' => 'textarea'),
                 array(array('required'), array('min_length', 3))
+        );
+        
+        $form->add('report_link', 'Report Link', 
+                array('type' => 'text'),
+                array(array('min_length', 20), array('max_length', 150))
         );
         
         $form->add('category', 'Category', array(
@@ -61,15 +66,7 @@ class Model_Report extends \Orm\Model
         }
         return $page;
     }
-    
-    public static function find_report($id = false)
-    {
-        if ($id)
-        {
-            return Model_Page::query()->where('id', $id)->where('section', 'report')->related('report')->get_one();
-        }
-        return Model_Page::query()->where('section', 'report')->related('report')->get();
-    }
+
 }
 
 /* End of file report.php */

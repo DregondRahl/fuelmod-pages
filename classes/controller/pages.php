@@ -4,11 +4,7 @@ namespace Pages;
 
 class Controller_Pages extends \Controller_App
 {
-    /**
-     * @var string  Holds the page model
-     */
-    protected $model    = null;
-    
+
     /**
      * @var string  Holds the page section
      */
@@ -17,8 +13,32 @@ class Controller_Pages extends \Controller_App
     /**
      * @var string  Holds the page title
      */
-    protected $title   = null;
+    protected $config   = array();
     
+    /**
+     * The router control.
+     * 
+     * @access  public
+     * @return  void
+     */
+    public function router($method, $params)
+    {
+        $config = \Config::load('page');
+
+        if ( ! empty($params) and array_key_exists($params[0], $config))
+        {
+            $this->section = $params[0];
+            $this->config  = (object) $config[$params[0]];
+
+            parent::router($method, $params);
+        }
+        else
+        {
+            \Request::show_404();
+        }
+    }
+
+
     /**
      * The index action.
      * 
@@ -27,9 +47,22 @@ class Controller_Pages extends \Controller_App
      */
     public function action_index()
     {
-        $pages = call_user_func('Pages\\'.$this->model.'::find_'.$this->section);
-
-        $this->template->title   = $this->section;
+        $pages = Model_Page::find()->where('section', $this->section);
+        
+        if ($this->config->related)
+        {
+            foreach($this->config->related as $related)
+            {
+                $pages->related($related);
+            }
+        }
+        
+        if ( ! $pages = $pages->get())
+        {
+            \Request::show_404();
+        }
+        
+        $this->template->title   = ucwords($this->section);
         $this->template->content = \View::factory('index')->set('pages', $pages);
     }
     
@@ -41,13 +74,28 @@ class Controller_Pages extends \Controller_App
      */
     public function action_view($id = false)
     {
-        if ( ! $page = call_user_func('Pages\\'.$this->model.'::find_'.$this->section, $id))
+        $page = Model_Page::find()->where('id', $id)->where('section', $this->section);
+        
+        if ($this->config->related)
+        {
+            foreach($this->config->related as $related)
+            {
+                $page->related($related);
+            }
+        }
+        
+        if ($this->config->comments)
+        {
+            $page->related('comments');
+        }
+        
+        if ( ! $page = $page->get_one())
         {
             \Request::show_404();
         }
 
         $this->template->title   = $page->title;
-        $this->template->content = \View::factory('view')->set('page', $page);
+        $this->template->content = \View::factory('view')->set('page', $page)->set('comments', $this->config->comments);
     }
     
     /**
@@ -60,9 +108,9 @@ class Controller_Pages extends \Controller_App
     {
         $page = Model_Page::factory();
         
-        $form = \Fieldset::factory($this->section)->add_model('Pages\\'.$this->model);
+        $form = \Fieldset::factory($this->section)->add_model('Pages\\'.$this->config->model);
         
-        if ($this->model != 'Model_Page')
+        if ($this->config->related)
         {
             $form->populate($page->{$this->section}, true);
         }
@@ -73,8 +121,8 @@ class Controller_Pages extends \Controller_App
         {
             $page->user_id      = 1;
             $page->section      = $this->section;
-            
-            if ($page = call_user_func_array('Pages\\'.$this->model.'::process_form', array($form, $page)))
+
+            if ($page = call_user_func_array('Pages\\'.$this->config->model.'::process_form', array($form, $page)))
             {
                 \Session::set_flash('success', 'Created '.$page->title);
                 \Response::redirect($this->section.'/'.$page->id.'/'.$page->slug);
@@ -82,8 +130,8 @@ class Controller_Pages extends \Controller_App
             \Session::set_flash('error', 'Could not create '.$this->title);
         }
         
-        $this->template->title   = 'Add '.$this->title;
-        $this->template->content = \View::factory('add-edit')->set('form', $form, false)->set('title', 'Add '.$this->title);
+        $this->template->title   = 'Add '.$this->config->title;
+        $this->template->content = \View::factory('add-edit')->set('form', $form, false)->set('title', 'Add '.$this->config->title);
     }
     
     /**
@@ -92,16 +140,32 @@ class Controller_Pages extends \Controller_App
      * @access  public
      * @return  void
      */
-    public function action_edit($id = false)
+    public function action_edit($section = false, $id = false)
     {
-        if ( ! $page = call_user_func('Pages\\'.$this->model.'::find_'.$this->section, $id))
+
+        $page = Model_Page::find()->where('id', $id)->where('section', $this->section);
+        
+        if ($this->config->related)
+        {
+            foreach($this->config->related as $related)
+            {
+                $page->related($related);
+            }
+        }
+        
+        if ($this->config->comments)
+        {
+            $page->related('comments');
+        }
+        
+        if ( ! $page = $page->get_one())
         {
             \Request::show_404();
         }
 
-        $form = \Fieldset::factory($this->section)->add_model('Pages\\'.$this->model);
+        $form = \Fieldset::factory($this->section)->add_model('Pages\\'.$this->config->model);
         
-        if ($this->model != 'Model_Page')
+        if ($this->config->related)
         {
             $form->populate($page->{$this->section}, true);
         }
@@ -110,12 +174,12 @@ class Controller_Pages extends \Controller_App
 
         if ($form->validation()->run())
         {
-            if ($page = call_user_func_array('Pages\\'.$this->model.'::process_form', array($form, $page)))
+            if ($page = call_user_func_array('Pages\\'.$this->config->model.'::process_form', array($form, $page)))
             {
                 \Session::set_flash('success', 'Updated '.$page->title);
                 \Response::redirect($this->section.'/'.$page->id.'/'.$page->slug);
             }
-            \Session::set_flash('error', 'Could not update '.$this->title);
+            \Session::set_flash('error', 'Could not update '.$this->config->title);
         }
         
         $this->template->title   = 'Edit: '. $page->title;
@@ -128,7 +192,7 @@ class Controller_Pages extends \Controller_App
      * @access  public
      * @return  void
      */
-    public function action_delete($id = null)
+    public function action_delete($section = false, $id = null)
     {
 
     }
